@@ -1,0 +1,28 @@
+{
+  "name": "@gaoding/access-controller",
+  "version": "1.0.0",
+  "description": "Permission control tool for editor",
+  "main": "dist/index.js",
+  "author": "weimi",
+  "license": "MIT",
+  "scripts": {
+    "build": "rollup -c"
+  },
+  "devDependencies": {
+    "@rollup/plugin-babel": "^6.0.0",
+    "@rollup/plugin-commonjs": "^23.0.0",
+    "@rollup/plugin-node-resolve": "^15.0.0",
+    "postcss": "^8.4.18",
+    "rollup": "^3.1.0",
+    "rollup-plugin-postcss": "^4.0.2",
+    "rollup-plugin-typescript2": "^0.34.1",
+    "rollup-plugin-vue": "^5.1.9",
+    "tslib": "^2.4.0",
+    "typescript": "^4.8.4",
+    "vue": "^2.6.14"
+  },
+  "peerDependencies": {
+    "@vue/composition-api": "^1.0.0",
+    "vue": "^2.0.0 || >=3.0.0"
+  }
+}

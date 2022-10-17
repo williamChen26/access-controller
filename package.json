@@ -1,0 +1,20 @@
+{
+  "name": "access-controller",
+  "version": "1.0.0",
+  "private": true,
+  "workspaces": [
+    "packages/*",
+    "demo"
+  ],
+  "description": "Permission control tool for editor",
+  "main": "index.js",
+  "author": "weimi",
+  "license": "MIT",
+  "scripts": {
+    "dev": "cd ./demo && vite",
+    "build": "cd ./packages/access-controller && yarn build"
+  },
+  "devDependencies": {
+    "pnpm": "^7.13.4"
+  }
+}
