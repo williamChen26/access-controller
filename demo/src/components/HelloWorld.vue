@@ -12,8 +12,8 @@ export default {
     components: {
         Test: accessController({
             enable: true,
-            type: 'event',
-            key: 'B'
+            action: 'event',
+            code: 'B || A || C'
         })(Test)
     },
     data() {

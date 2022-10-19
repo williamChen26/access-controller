@@ -7,7 +7,8 @@ accessInit({
     enable: true,
     config: {
         A: true,
-        B: false,
+        B: true,
+        C: false,
     }
 });
 

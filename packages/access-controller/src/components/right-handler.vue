@@ -1,45 +1,14 @@
 <script lang="ts">
 import { computed, PropType, defineComponent } from '../vue-demi/index';
-import { useConfig } from '../config';
+import { useConfig, DISABLED_CLASS } from '../config';
+import { createEvent } from '../utils/create-mask';
 import '../css/disabled.less';
 
 // type CodeStr = keyof Config;
 
 const LOCK_CLASS = 'editor-right-controller--lock';
 
-const { DISABLED_CLASS } = useConfig();
-
-function createEvent() {
-    let $maskDom: any = null;
-    const nodeList = document.querySelectorAll(`.${DISABLED_CLASS}`);
-    nodeList.forEach((node) => {
-        node.addEventListener('mouseenter', function (e) {
-            const target = e.currentTarget as HTMLElement;
-            const rect = target.getBoundingClientRect();
-            const offset = {
-                left: target.offsetLeft,
-                top: target.offsetTop,
-            };
-            if (!$maskDom) {
-                $maskDom = document.createElement('div');
-                $maskDom.setAttribute('className', LOCK_CLASS);
-            }
-            target?.offsetParent?.appendChild($maskDom);
-
-            $maskDom.show().css({
-                left: offset.left + 'px',
-                top: offset.top + 'px',
-                width: rect.width + 'px',
-                height: rect.height + 'px',
-            });
-        });
-        node.addEventListener('mouseleave', function () {
-            $maskDom.hide();
-        });
-    })
-}
-
-createEvent();
+createEvent(`.${DISABLED_CLASS}`, LOCK_CLASS);
 
 export default defineComponent({
     props: {
@@ -49,7 +18,7 @@ export default defineComponent({
         },
     },
     setup(props, { slots }) {
-        const { DISABLED_CLASS, enable, loaded, hasAuth, authMaps } = useConfig();
+        const { enable, loaded, hasAuth, authMaps } = useConfig();
         // const config = inject<RightController | null>(INJECTION_KEY, null);
 
         function renderDefaultSlots() {

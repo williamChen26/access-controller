@@ -6,6 +6,7 @@
   "author": "weimi",
   "license": "MIT",
   "scripts": {
+    "dev": "rollup -c --watch --silent",
     "build": "rollup -c"
   },
   "devDependencies": {
@@ -24,5 +25,8 @@
   "peerDependencies": {
     "@vue/composition-api": "^1.0.0",
     "vue": "^2.0.0 || >=3.0.0"
+  },
+  "dependencies": {
+    "jsep": "1.3.7"
   }
 }

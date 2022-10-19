@@ -4,15 +4,15 @@
   "private": true,
   "workspaces": [
     "packages/*",
-    "demo"
+    "demo/"
   ],
   "description": "Permission control tool for editor",
   "main": "index.js",
   "author": "weimi",
   "license": "MIT",
   "scripts": {
-    "dev": "cd ./demo && vite",
-    "build": "cd ./packages/access-controller && yarn build"
+    "dev": "pnpm run --stream -r --filter {**/*} dev",
+    "dev2": "cd ./packages/controller && pnpm run dev"
   },
   "devDependencies": {
     "pnpm": "^7.13.4"
