@@ -15,12 +15,18 @@ export default (auth: string) => {
                 authOptions() {
                     return getAuthOptions(auth);
                 },
-                map() {
+                maps() {
                     return authMaps(auth);
                 }
             },
             methods: {
-                //...
+                cutOffCustom(...params: any[]) {
+                    console.log(123)
+                    const authOptions = (this as any).authOptions
+                    const fn = authOptions?.action?.execution;
+                    
+                    fn && fn((this as any).maps, ...params);
+                }
             },
             render(h: CreateElement) {
                 const _this = this as any;
@@ -28,7 +34,7 @@ export default (auth: string) => {
                 const props = Object.assign(_this.$props, {
                     auth_show: _this.authOptions.auth,
                     auth_loaded: loaded,
-                    auth_map: _this.map,
+                    auth_maps: _this.maps,
                     auth_disabledClass: _this.authOptions.auth ? DISABLED_CLASS : '',
                 });
                 
@@ -48,27 +54,32 @@ export default (auth: string) => {
                     },
                     slots,
                 );
-                
-                if (!_this.authOptions.enable || _this.authOptions.action === 'none') {
+                const type = _this.authOptions.action?.type;
+                if (!_this.authOptions.enable) {
                     return targetComponent;
-                } else if (_this.authOptions.action === 'display') {
+                } else if (type === 'display') {
                     return _this.authOptions.auth ? targetComponent : null;
-                } else if (_this.authOptions.action === 'event') {
-                    return _this.authOptions.auth ? h(
+                } else if (type === 'event') {
+                    const name = _this.authOptions.action?.name;
+                    if (!name) {
+                        return targetComponent;
+                    }
+                    Object.assign(_this.$listeners, {
+                        [name]: _this.cutOffCustom,
+                    })
+
+                    return h(
                         WrappedComponent,
                         {
                             on: _this.$listeners,
                             attrs: _this.$attrs,
                             props,
                             'class': HOC_AUTH_CLASS,
-                            style: {
-                                'pointer-events': 'none',
-                            },
                             scopedSlots: _this.$scopedSlots,
     
                         },
                         slots,
-                    ) : null;
+                    );
                 } else if (_this.authOptions.action === 'tips'){
                     // TODO:待补充
                     return null

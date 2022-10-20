@@ -1,12 +1,24 @@
 import jsep from 'jsep';
 
-interface AuthConfigSheet {
+interface CompleteParams {
     enable: boolean;
-    action: keyof AuthType;
+    action: Action | keyof typeof AuthType;
     code: string | string[];
 }
 
-type  AuthConfig = string | string[] | AuthConfigSheet;
+interface AuthConfigSheet {
+    enable: boolean;
+    action: Action;
+    auth: boolean;
+}
+
+interface Action {
+    type: keyof typeof AuthType;
+    name?: string;
+    execution?: Function;
+}
+
+type  Params = string | string[] | CompleteParams;
 
 interface Rules {
     [key:string]: string
@@ -19,11 +31,6 @@ enum AuthType {
     'none',
 }
 
-interface AuthOption {
-    enable?: boolean;
-    type?: keyof AuthType;
-    key: string | string[];
-}
 
 const PERMISSION = new Map();
 
@@ -70,16 +77,34 @@ function lexicalAnalysis(expression: string | string[] = '') {
         }
         return parse_tree.value || PERMISSION.get(parse_tree.name);
     }
+    
     return analysis(parse_tree);
 }
 
 // 简写转默认配置
-const supplement = (data: string | string[]) => {
-    return {
-        enable,
-        action: 'display',
-        auth: lexicalAnalysis(data)
+const configComplete = (data: Params): AuthConfigSheet => {
+    const isObject = !(Array.isArray(data) || typeof data === 'string');
+
+    const innerEnable = isObject ? data.enable : enable;
+
+    const innerAction: { type: keyof typeof AuthType } = {
+        type: 'display',
     }
+
+    const innerAuth = isObject ? lexicalAnalysis(data.code) : lexicalAnalysis(data);
+
+    if (isObject && typeof data?.action === 'string') {
+        innerAction.type = data.action;
+    } else if (isObject) {
+        Object.assign(innerAction, data.action)
+    }
+
+    return {
+        enable: innerEnable,
+        action: innerAction,
+        auth: innerAuth
+    };
+    
 }
 
 // 单权限语法糖 --VIEW --
@@ -100,7 +125,7 @@ export function useConfig() {
         loaded = !!v
     };
     // 判断权限值
-    function hasAuth(config: string | string[] | AuthConfigSheet): boolean {
+    function hasAuth(config: Params): boolean {
         if (Array.isArray(config)) {
             return config.every((code) => !PERMISSION.has(code) || PERMISSION.get(code));
         } else if (typeof config === 'string') {
@@ -112,20 +137,8 @@ export function useConfig() {
     };
 
     // 获取权限option
-    function getAuthOptions(config: string | string[] | AuthConfigSheet) {
-        if (Array.isArray(config) || typeof config === 'string') {
-            return supplement(config);
-        } else if(config instanceof Object) {
-            if ('enable' in config && !config.enable) {
-                return { enable: false };
-            }
-            return {
-                enable: config.enable,
-                action: config.action || 'display',
-                auth: lexicalAnalysis(config.code),
-            }
-        }
-        return {};
+    function getAuthOptions(config: Params) {
+        return configComplete(config)
     };
 
     function authMaps(auth: string | string[]) {

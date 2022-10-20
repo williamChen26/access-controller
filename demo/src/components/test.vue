@@ -1,5 +1,9 @@
 <template>
-  <div>测试333</div>
+  <div @click="test">
+    测试333
+    <div v-if="auth_show">我需要隐藏</div>
+
+  </div>
 </template>
 
 <script>
@@ -14,7 +18,7 @@ export default {
             type: Boolean,
             default: false,
         },
-        auth_map: {
+        auth_maps: {
             type: Object,
             default: {},
         },
@@ -26,7 +30,12 @@ export default {
             type: String,
             default: '',
         }
-    }
+    },
+    methods: {
+        test() {
+            this.$emit('eventTest1', 'weimi', 'chuanpu');
+        }
+    },
 }
 </script>
 
