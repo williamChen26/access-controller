@@ -1,9 +1,10 @@
 import { Component, CreateElement } from 'vue';
 import { useConfig, HOC_AUTH_CLASS, DISABLED_CLASS } from '../config';
+import type { Params } from '../config';
 
-export default (auth: string) => {
+export default (config: Params) => {
     return (WrappedComponent: Component) => {
-        const { getAuthOptions, authMaps, loaded } = useConfig();
+        const { getAuth, authMaps, getPermission, loaded } = useConfig(config);
         const AuthComponent: Component = {
             components: {
                 WrappedComponent,
@@ -13,15 +14,18 @@ export default (auth: string) => {
             },
             computed: {
                 authOptions() {
-                    return getAuthOptions(auth);
+                    return getAuth();
                 },
                 maps() {
-                    return authMaps(auth);
+                    let permission = config;
+                    if (typeof config !== 'string' && 'code' in config) {
+                        permission = config.code;
+                    }
+                    return authMaps(permission);
                 }
             },
             methods: {
                 cutOffCustom(...params: any[]) {
-                    console.log(123)
                     const authOptions = (this as any).authOptions
                     const fn = authOptions?.action?.execution;
                     
@@ -30,12 +34,21 @@ export default (auth: string) => {
             },
             render(h: CreateElement) {
                 const _this = this as any;
-
+                const permissionProps: { [key: string]: boolean } = {};
+                
+                // 透传props
+                if (typeof config === 'object' && 'props' in config) {
+                    for (let key in config.props) {
+                        permissionProps[key] = getPermission(config.props[key]) || false;
+                    }
+                }
                 const props = Object.assign(_this.$props, {
                     auth_show: _this.authOptions.auth,
                     auth_loaded: loaded,
                     auth_maps: _this.maps,
                     auth_disabledClass: _this.authOptions.auth ? DISABLED_CLASS : '',
+                    ...permissionProps,
+
                 });
                 
                 const slots = Object.keys(_this.$slots).reduce((arr: any[], key: string) => {
@@ -55,7 +68,7 @@ export default (auth: string) => {
                     slots,
                 );
                 const type = _this.authOptions.action?.type;
-                if (!_this.authOptions.enable) {
+                if (!_this.authOptions.enable || type === 'none') {
                     return targetComponent;
                 } else if (type === 'display') {
                     return _this.authOptions.auth ? targetComponent : null;

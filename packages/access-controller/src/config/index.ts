@@ -4,6 +4,7 @@ interface CompleteParams {
     enable: boolean;
     action: Action | keyof typeof AuthType;
     code: string | string[];
+    props?: { [key:string]: string };
 }
 
 interface AuthConfigSheet {
@@ -18,10 +19,10 @@ interface Action {
     execution?: Function;
 }
 
-type  Params = string | string[] | CompleteParams;
+export type  Params = string | string[] | CompleteParams;
 
-interface Rules {
-    [key:string]: string
+export interface Rules {
+    [key:string]: boolean
 }
 
 enum AuthType {
@@ -32,8 +33,7 @@ enum AuthType {
 }
 
 
-const PERMISSION = new Map();
-
+const PERMISSION_MAP = new Map();
 
 export const HOC_AUTH_CLASS = 'auth-controller--identify';
 
@@ -45,7 +45,7 @@ let loaded = false;
 // js表达式解析
 function lexicalAnalysis(expression: string | string[] = '') {
     if (Array.isArray(expression)) {
-        return expression.every((code) => !PERMISSION.has(code) || PERMISSION.get(code));
+        return expression.every((code) => !PERMISSION_MAP.has(code) || PERMISSION_MAP.get(code));
     };
     const parse_tree = jsep(expression);
     const analysis = (parse_tree: any): boolean => {
@@ -59,13 +59,13 @@ function lexicalAnalysis(expression: string | string[] = '') {
             if (leftTree.type === 'BinaryExpression') {
                 leftValue = analysis(leftTree);
             } else if (leftTree.value || leftTree.name) {
-                leftValue = leftTree.value || PERMISSION.get(leftTree.name)
+                leftValue = leftTree.value || PERMISSION_MAP.get(leftTree.name)
             }
 
             if (rightTree.type === 'BinaryExpression') {
                 rightValue = analysis(rightTree);
             } else if (rightTree.value || rightTree.name) {
-                rightValue = rightTree.value || PERMISSION.get(rightTree.name)
+                rightValue = rightTree.value || PERMISSION_MAP.get(rightTree.name)
             }
             if (parse_tree.operator === '&&') {
                 return leftValue && rightValue;
@@ -75,14 +75,27 @@ function lexicalAnalysis(expression: string | string[] = '') {
             }
             return false;
         }
-        return parse_tree.value || PERMISSION.get(parse_tree.name);
+        return parse_tree.value || PERMISSION_MAP.get(parse_tree.name);
     }
-    
+    const auth = analysis(parse_tree);
     return analysis(parse_tree);
 }
 
-// 简写转默认配置
-const configComplete = (data: Params): AuthConfigSheet => {
+function collectionPermission(expression: string): string[] {
+    const parse_tree = jsep(expression);
+    const permissionArr: string[] = [];
+    const getParseNames = <T extends { name: string }, U extends { left: U | T, right: U | T } | T>(tree: U) => {
+
+        'name' in tree && permissionArr.push(tree.name);
+        'left' in tree && getParseNames(tree.left);
+        'right' in tree && getParseNames(tree.right);
+    }
+    getParseNames(parse_tree as any);
+    return permissionArr;
+}
+
+// 配置
+const assembleAuth = (data: Params): AuthConfigSheet => {
     const isObject = !(Array.isArray(data) || typeof data === 'string');
 
     const innerEnable = isObject ? data.enable : enable;
@@ -90,8 +103,7 @@ const configComplete = (data: Params): AuthConfigSheet => {
     const innerAction: { type: keyof typeof AuthType } = {
         type: 'display',
     }
-
-    const innerAuth = isObject ? lexicalAnalysis(data.code) : lexicalAnalysis(data);
+    const auth = isObject ? lexicalAnalysis(data.code) : lexicalAnalysis(data);
 
     if (isObject && typeof data?.action === 'string') {
         innerAction.type = data.action;
@@ -102,18 +114,15 @@ const configComplete = (data: Params): AuthConfigSheet => {
     return {
         enable: innerEnable,
         action: innerAction,
-        auth: innerAuth
+        auth,
     };
     
 }
 
-// 单权限语法糖 --VIEW --
-
-export function useConfig() {
-
+export function useConfig(config?: Params) {
     function registerUserPermission(rules: Rules) {
         for(let k in rules) {
-            PERMISSION.set(k, rules[k]);
+            PERMISSION_MAP.set(k, rules[k]);
         }
     };
 
@@ -124,45 +133,53 @@ export function useConfig() {
     function setLoaded(v: boolean) {
         loaded = !!v
     };
+
+    function getAuth() {
+        return assembleAuth(config!);
+    }
+
+    function getPermission(v: string) {
+        return PERMISSION_MAP.get(v);
+    }
+
     // 判断权限值
     function hasAuth(config: Params): boolean {
         if (Array.isArray(config)) {
-            return config.every((code) => !PERMISSION.has(code) || PERMISSION.get(code));
+            return config.every((code) => !PERMISSION_MAP.has(code) || PERMISSION_MAP.get(code));
         } else if (typeof config === 'string') {
-            return !PERMISSION.has(config) || PERMISSION.get(config);
+            return !PERMISSION_MAP.has(config) || PERMISSION_MAP.get(config);
         } else if(config instanceof Object) {
             return lexicalAnalysis(config.code);
         }
         return true;
     };
 
-    // 获取权限option
-    function getAuthOptions(config: Params) {
-        return configComplete(config)
-    };
+    function authMaps(auth: Params) {
+        let options: any = {};
 
-    function authMaps(auth: string | string[]) {
         if (Array.isArray(auth)) {
-            return auth.reduce((map, code) => {
+            options = auth.reduce((map, code) => {
                 map[code] = !!hasAuth(code);
                 return map;
             }, {} as { [key: string]: boolean });
-        } else if (auth) {
-            return { [auth]: !!hasAuth(auth) };
-        } else {
-            return {};
+        } else if (typeof auth === 'string') {
+            collectionPermission(auth).forEach((item) => {
+                options[item] = hasAuth(item)
+            })
         }
+        return options;
     };
 
     return {
-        PERMISSION,
+        PERMISSION_MAP,
         enable,
         loaded,
         registerUserPermission,
         setEnable,
         setLoaded,
+        getPermission,
         hasAuth,
-        getAuthOptions,
+        getAuth,
         authMaps
     }
 

@@ -1,8 +1,14 @@
 <template>
   <div @click="test">
-    测试333
-    <div v-if="auth_show">我需要隐藏</div>
-
+        <div>
+            mark值：
+            <span>{{ showMark }}</span>
+        </div>
+        <div>
+            Vip值：
+            <span>{{ showVip }}</span>
+        </div>
+        <button @click="test">测试自定义事件</button>
   </div>
 </template>
 
@@ -25,6 +31,14 @@ export default {
         auth_disabledClass: {
             type: String,
             default: '',
+        },
+        showMark: {
+            type: Boolean,
+            default: true,
+        },
+        showVip: {
+            type: Boolean,
+            default: true,
         },
         msg: {
             type: String,
