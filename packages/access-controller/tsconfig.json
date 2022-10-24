@@ -2,7 +2,7 @@
   "compilerOptions": {
     "declaration": true,
     "target": "ES5",
-    "module": "ES2015",
+    "module": "ES2020",
     "strict": true,
     "importHelpers": true,
     "moduleResolution": "node",

@@ -71,7 +71,6 @@ export default {
                 ],
             ],
         }),
-        vueTransformPlugin(true),
         typescript({
             tsconfig: getPath("./tsconfig.json"), // 导入本地ts配置
             extensions: [".js", ".ts"],

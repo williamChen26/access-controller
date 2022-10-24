@@ -1,15 +1,15 @@
 import Vue from "vue";
+import VueCompositionAPI from "@vue/composition-api";
 import "./style.css";
 import App from "./App.vue";
 import accessInit from "@gaoding/access-controller";
-
-console.log(2);
+Vue.use(VueCompositionAPI)
 accessInit({
     enable: true,
     config: {
         A: true,
         B: true,
-        C: true,
+        C: false,
         MARK: false,
         VIP: true,
         EVENT_INTEERCEPT: true,

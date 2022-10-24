@@ -1,7 +1,9 @@
+import { computed, ref } from '@vue/composition-api';
+import Vue from 'vue';
 import jsep from 'jsep';
 
 interface CompleteParams {
-    enable: boolean;
+    enable?: boolean;
     action: Action | keyof typeof AuthType;
     code: string | string[];
     props?: { [key:string]: string };
@@ -10,7 +12,7 @@ interface CompleteParams {
 interface AuthConfigSheet {
     enable: boolean;
     action: Action;
-    auth: boolean;
+    code: string | string[];
 }
 
 interface Action {
@@ -32,20 +34,39 @@ enum AuthType {
     'none',
 }
 
+// export const PERMISSION_MAP = Vue.observable(new Map());
+export const state = Vue.observable<{ [key: string]: any }>({
+    enable: false,
+    loaded: false,
+    PERMISSION_MAP: {},
+});
 
-const PERMISSION_MAP = new Map();
+export function registerUserPermission(rules: Rules) {
+    const temp: {[key: string]: boolean} = {};
+    for(let k in rules) {
+        // PERMISSION_MAP.set(k, rules[k]);
+        temp[k] = rules[k];
+    }
+    state.PERMISSION_MAP = temp
+};
+
+export function setEnable(v: boolean) {
+    state.enable = !!v
+};
+
+export function setLoaded(v: boolean) {
+    state.loaded = !!v
+};
 
 export const HOC_AUTH_CLASS = 'auth-controller--identify';
 
 export const DISABLED_CLASS = 'editor-right-controller--disabled';
 
-let enable = false;
-let loaded = false;
-
 // js表达式解析
-function lexicalAnalysis(expression: string | string[] = '') {
+export function lexicalAnalysis(expression: string | string[] = '') {
     if (Array.isArray(expression)) {
-        return expression.every((code) => !PERMISSION_MAP.has(code) || PERMISSION_MAP.get(code));
+        // return expression.every((code) => !PERMISSION_MAP.has(code) || PERMISSION_MAP.get(code));
+        return expression.every((code) => state.PERMISSION_MAP[code] ?? true);
     };
     const parse_tree = jsep(expression);
     const analysis = (parse_tree: any): boolean => {
@@ -59,13 +80,14 @@ function lexicalAnalysis(expression: string | string[] = '') {
             if (leftTree.type === 'BinaryExpression') {
                 leftValue = analysis(leftTree);
             } else if (leftTree.value || leftTree.name) {
-                leftValue = leftTree.value || PERMISSION_MAP.get(leftTree.name)
+                // leftValue = leftTree.value || PERMISSION_MAP.get(leftTree.name)
+                leftValue = leftTree.value || state.PERMISSION_MAP[leftTree.name]
             }
 
             if (rightTree.type === 'BinaryExpression') {
                 rightValue = analysis(rightTree);
             } else if (rightTree.value || rightTree.name) {
-                rightValue = rightTree.value || PERMISSION_MAP.get(rightTree.name)
+                rightValue = rightTree.value || state.PERMISSION_MAP[rightTree.name]
             }
             if (parse_tree.operator === '&&') {
                 return leftValue && rightValue;
@@ -75,7 +97,7 @@ function lexicalAnalysis(expression: string | string[] = '') {
             }
             return false;
         }
-        return parse_tree.value || PERMISSION_MAP.get(parse_tree.name);
+        return parse_tree.value || state.PERMISSION_MAP[parse_tree.name];
     }
     const auth = analysis(parse_tree);
     return analysis(parse_tree);
@@ -85,7 +107,6 @@ function collectionPermission(expression: string): string[] {
     const parse_tree = jsep(expression);
     const permissionArr: string[] = [];
     const getParseNames = <T extends { name: string }, U extends { left: U | T, right: U | T } | T>(tree: U) => {
-
         'name' in tree && permissionArr.push(tree.name);
         'left' in tree && getParseNames(tree.left);
         'right' in tree && getParseNames(tree.right);
@@ -98,7 +119,7 @@ function collectionPermission(expression: string): string[] {
 const assembleAuth = (data: Params): AuthConfigSheet => {
     const isObject = !(Array.isArray(data) || typeof data === 'string');
 
-    const innerEnable = isObject ? data.enable : enable;
+    const innerEnable = isObject ? data.enable : state.enable;
 
     const innerAction: { type: keyof typeof AuthType } = {
         type: 'display',
@@ -114,73 +135,49 @@ const assembleAuth = (data: Params): AuthConfigSheet => {
     return {
         enable: innerEnable,
         action: innerAction,
-        auth,
+        code: isObject ? data.code : data,
     };
     
 }
 
 export function useConfig(config?: Params) {
-    function registerUserPermission(rules: Rules) {
-        for(let k in rules) {
-            PERMISSION_MAP.set(k, rules[k]);
-        }
-    };
+    const permissions = ref<{ [key: string]: boolean }>({});
 
-    function setEnable(v: boolean) {
-        enable = !!v
-    };
-
-    function setLoaded(v: boolean) {
-        loaded = !!v
-    };
-
-    function getAuth() {
+    function getAssembleConfig() {
         return assembleAuth(config!);
     }
 
-    function getPermission(v: string) {
-        return PERMISSION_MAP.get(v);
-    }
-
-    // 判断权限值
-    function hasAuth(config: Params): boolean {
+    // 判断是否有权限（true/false）
+    const hasAuth = computed(() => {
+        if (!Object.keys(permissions.value).length) {
+            return true;
+        }
         if (Array.isArray(config)) {
-            return config.every((code) => !PERMISSION_MAP.has(code) || PERMISSION_MAP.get(code));
+            return config.every((code) => permissions.value[code] ?? true);
         } else if (typeof config === 'string') {
-            return !PERMISSION_MAP.has(config) || PERMISSION_MAP.get(config);
+            return permissions.value[config] ?? true;
         } else if(config instanceof Object) {
             return lexicalAnalysis(config.code);
         }
         return true;
+    });
+
+    const updatePermission = () => {
+        const temp: any = {};
+        collectionPermission(getAssembleConfig().code as string).forEach((item) => {
+            // permissions[item] = PERMISSION_MAP.get(item);
+            temp[item] = state.PERMISSION_MAP[item];
+        });
+        permissions.value = temp;
     };
-
-    function authMaps(auth: Params) {
-        let options: any = {};
-
-        if (Array.isArray(auth)) {
-            options = auth.reduce((map, code) => {
-                map[code] = !!hasAuth(code);
-                return map;
-            }, {} as { [key: string]: boolean });
-        } else if (typeof auth === 'string') {
-            collectionPermission(auth).forEach((item) => {
-                options[item] = hasAuth(item)
-            })
-        }
-        return options;
-    };
-
     return {
-        PERMISSION_MAP,
-        enable,
-        loaded,
-        registerUserPermission,
-        setEnable,
-        setLoaded,
-        getPermission,
+        PERMISSION_MAP: state.PERMISSION_MAP,
+        enable: state.enable,
+        loaded: state.loaded,
+        permissions,
         hasAuth,
-        getAuth,
-        authMaps
+        getAssembleConfig,
+        updatePermission,
     }
 
 }
