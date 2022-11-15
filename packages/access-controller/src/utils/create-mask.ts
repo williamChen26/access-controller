@@ -28,11 +28,11 @@ export function createEvent(eleStr: string, className: string) {
     nodeList.forEach((node) => {
         node.addEventListener('mouseenter', function (e) {
             const target = e.currentTarget as HTMLElement;
-        $maskDom.setAttribute('className', className);
+            $maskDom.setAttribute('className', className);
             createMask($maskDom, target);
         });
         node.addEventListener('mouseleave', function () {
             $maskDom.style.display = 'none';
         });
-    })
+    });
 }

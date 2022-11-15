@@ -19,7 +19,8 @@
     "rollup-plugin-typescript2": "^0.34.1",
     "rollup-plugin-vue": "^5.1.9",
     "tslib": "^2.4.0",
-    "typescript": "^4.8.4"
+    "typescript": "^4.8.4",
+    "events": "3.3.0"
   },
   "peerDependencies": {
     "vue": "2.6.14"

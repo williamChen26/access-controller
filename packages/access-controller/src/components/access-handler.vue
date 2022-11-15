@@ -1,8 +1,10 @@
 <script lang="ts">
-import { computed, PropType, defineComponent } from '@vue/composition-api';
-import { useConfig, DISABLED_CLASS } from '../config';
+import { computed, PropType, defineComponent } from '../vue-demi/index';
+import { useConfig, state, DISABLED_CLASS } from '../config';
 import { createEvent } from '../utils/create-mask';
 import '../css/disabled.less';
+
+// type CodeStr = keyof Config;
 
 const LOCK_CLASS = 'editor-right-controller--lock';
 
@@ -16,8 +18,7 @@ export default defineComponent({
         },
     },
     setup(props, { slots }) {
-
-        const { enable, loaded, hasAuth, permissions } = useConfig(props.right);
+        const { hasAuth, permissions } = useConfig(props.right);
         // const config = inject<RightController | null>(INJECTION_KEY, null);
 
         function renderDefaultSlots() {
@@ -37,7 +38,7 @@ export default defineComponent({
             return slots.default?.();
         }
 
-        if (!enable) return renderDefaultSlots;
+        if (!state.enable) return renderDefaultSlots;
 
         // { code1: right1, code2: right2 }
         const map = computed(() => {
@@ -50,7 +51,7 @@ export default defineComponent({
 
                 return slots.extracts?.({
                     allow: hasAuth.value,
-                    loaded,
+                    loaded: state.loaded,
                     map: map.value,
                     disabledClass,
                 });
